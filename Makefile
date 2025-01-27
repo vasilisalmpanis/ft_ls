@@ -4,7 +4,7 @@ OBJ	= $(SRC:.c=.o)
 RM	= rm
 CC	= clang
 CFLAGS	= -Wall -Wextra -Werror
-INC	= ./include/
+INC	= ./include
 
 all: $(NAME)
 
