@@ -1,5 +1,8 @@
 # Prerequisites
 *.d
+ft_ls
+.cache
+compile_commands.json
 
 # Object files
 *.o
