@@ -34,7 +34,6 @@ This project is about recoding the ls core utility to learn more about how to in
 
 Bonus:
 ◦ tcgetattr
-
 ```
 
 ## Mandatory Part
@@ -49,3 +48,8 @@ Bonus:
     * The overall display, depending on each option, must stay as identical as possible to  
       the system command. We will be cordial when grading either the padding or the pagination,  
       but no information can be miss
+
+```text
+GNU argp will be used for option parsing
+and display of options.
+```
