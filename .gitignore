@@ -3,6 +3,7 @@
 ft_ls
 .cache
 compile_commands.json
+*/.clang-format
 
 # Object files
 *.o

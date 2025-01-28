@@ -10,7 +10,7 @@ all: $(NAME)
 
 $(NAME) : libft $(OBJ) 
 	@if [ -n "$(OBJ)" ]; then \
-		$(CC) $(CFLAGS) -I $(INC) $(OBJ) -o $(NAME); \
+		$(CC) $(CFLAGS) -I $(INC) $(OBJ) ./libft/libft.a -o $(NAME); \
 	fi
 
 %.o: %.c
