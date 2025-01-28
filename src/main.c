@@ -1,4 +1,5 @@
 #include <ft_ls.h>
+#include <unistd.h>
 
 struct argp_option options[] =
 {
@@ -136,7 +137,7 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
  */
 void init_config(ls_config *config) {
 	ft_bzero(config, sizeof(ls_config));
-	config->all = false;
+	config->isatty = isatty(1);
 }
 
 /**
@@ -175,6 +176,7 @@ void debug_config(ls_config *config) {
 	printf("d: %d\n", config->directory);
 	printf("h: %d\n", config->human_readable);
 	printf("entries: %d\n", config->total_entries);
+	printf("isatty: %d\n", config->isatty);
 	while (config->files[index]) {
 		printf("file: %s\n", config->files[index]);
 		index++;

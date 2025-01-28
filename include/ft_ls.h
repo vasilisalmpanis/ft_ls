@@ -15,6 +15,7 @@ typedef struct ls_config {
 	bool human_readable;	/* -h option */
 	bool directory;		/* -d option */
 	bool time_sort;		/* -t option */
+	bool isatty;
 	char *files[1024];	/* array of files to print */
 	int  total_entries;
 } ls_config;
