@@ -1,5 +1,6 @@
+#include <dirent.h>
 #include <ft_ls.h>
-#include <unistd.h>
+#include <stdio.h>
 
 struct argp_option options[] =
 {
@@ -68,7 +69,8 @@ struct argp_option options[] =
  * @param arg the file argument
  * @return 0 on success 1 if an error occurs
  */
-int set_next_entry(ls_config *ls_config, char *arg) {
+int set_next_entry(ls_config *ls_config, char *arg)
+{
 	if (ls_config->total_entries + 1 > 1023)
 		return (0);
 	ls_config->files[ls_config->total_entries] = ft_strdup(arg);
@@ -135,7 +137,8 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
  *
  * @param config 
  */
-void init_config(ls_config *config) {
+void init_config(ls_config *config)
+{
 	ft_bzero(config, sizeof(ls_config));
 	config->isatty = isatty(1);
 }
@@ -146,7 +149,8 @@ void init_config(ls_config *config) {
  * close all open file desc.
  * @param config 
  */
-void deinit_config(ls_config *config) {
+void deinit_config(ls_config *config)
+{
 	int index;
 
 	index = 0;
@@ -165,7 +169,8 @@ void deinit_config(ls_config *config) {
  *
  * @param config 
  */
-void debug_config(ls_config *config) {
+void debug_config(ls_config *config)
+{
 	int index;
 
 	index = 0;
@@ -183,6 +188,55 @@ void debug_config(ls_config *config) {
 	}
 }
 
+void loop(ls_config *config)
+{
+	int index, ret;
+	struct stat info;
+	DIR *directory;
+	struct dirent *file;
+
+	index = 0;
+	ret = 0;
+	
+	/* loop through config files and print info */
+	for (;config->files[index]; index++) {
+		ret = stat(config->files[index], &info);
+		if (ret) {
+			printf("error %s\n", config->files[index]);
+			// check the error message and continue
+			continue;
+		}
+		switch (info.st_mode & S_IFMT) {
+			case S_IFBLK: 
+				printf("block device\n");
+				break;
+			case S_IFCHR:  printf("character device\n");        break;
+			case S_IFDIR:
+				directory = opendir(config->files[index]);
+				if (directory) {
+					while ((file = readdir(directory)) != NULL) {
+						if (file->d_name[0] !=  '.') {
+							if (config->isatty)
+								printf("%s  ", file->d_name);
+							else
+								printf("%s\n", file->d_name);
+						}
+					}
+					if (config->isatty)
+						printf("\n");
+					closedir(directory);
+				}
+				break;
+			case S_IFIFO:  printf("FIFO/pipe\n");               break;
+			case S_IFLNK:  printf("symlink\n");                 break;
+			case S_IFREG:  printf("regular file\n");            break;
+			case S_IFSOCK: printf("socket\n");                  break;
+			default:       printf("unknown?\n");                break;	
+		}
+
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	int ret;
@@ -197,7 +251,12 @@ int main(int argc, char *argv[])
 	};
 	init_config(&config);
 	ret = argp_parse(&argp, argc, argv, 0, 0, &config);
-	debug_config(&config);
+	/*
+	* here ideally I should sort the files to be printed
+	* before the loop
+	*/
+	loop(&config);
+	/*debug_config(&config);*/
 	deinit_config(&config);
 	return (ret);
 }

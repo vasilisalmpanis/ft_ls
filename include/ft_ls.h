@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <linux/limits.h>
+#include <sys/types.h>
+#include <dirent.h>
+
 
 #include "docs.h"
 #include "../libft/libft.h"
