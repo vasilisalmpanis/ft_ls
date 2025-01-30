@@ -1,6 +1,9 @@
 #include <dirent.h>
 #include <ft_ls.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
 struct argp_option options[] =
 {
@@ -69,13 +72,13 @@ struct argp_option options[] =
  * @param arg the file argument
  * @return 0 on success 1 if an error occurs
  */
-int set_next_entry(ls_config *ls_config, char *arg)
+int set_next_entry(ls_config *ls_config)
 {
 	if (ls_config->total_entries + 1 > 1023)
 		return (0);
-	ls_config->files[ls_config->total_entries] = ft_strdup(arg);
-	if (!ls_config->files[ls_config->total_entries])
-		return (1);
+	/*ls_config->files[ls_config->total_entries] = ft_strdup(arg);*/
+	/*if (!ls_config->files[ls_config->total_entries])*/
+		/*return (1);*/
 	++ls_config->total_entries;
 	return (0);
 }
@@ -114,15 +117,9 @@ static int parse_opt(int key, char *arg, struct argp_state *state)
 			ls_config->human_readable = true;
 			break;
 		case ARGP_KEY_ARG:
-			set_next_entry(ls_config, arg);
+			set_next_entry(ls_config);
 			break;
 		case ARGP_KEY_END:
-			if (ls_config->files[0] == NULL) {
-				ls_config->files[0] = ft_strdup(".");
-				if (!ls_config->files[0])
-					exit(1);
-				++ls_config->total_entries;
-			}
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;
@@ -149,99 +146,79 @@ void init_config(ls_config *config)
  * close all open file desc.
  * @param config 
  */
-void deinit_config(ls_config *config)
+/*void deinit_config(ls_config *config)*/
+/*{*/
+/*	int index;*/
+/**/
+/*	index = 0;*/
+/*	}*/
+/*}*/
+
+void loop(ls_config *config, file_t *files)
 {
-	int index;
+	/*
+	* here ideally I should sort the files to be printed
+	* before the loop
+	*/
+	int index;	
 
-	index = 0;
-	while (config->files[index]) {
-		free(config->files[index]);
-		index++;
-	}
-}
-
-
-/**
- * @brief debug_config
- * Print out the contents of ls_config
- * for debugging purposes in a structured
- * way.
- *
- * @param config 
- */
-void debug_config(ls_config *config)
-{
-	int index;
-
-	index = 0;
-	printf("l: %d\n", config->long_format);
-	printf("R: %d\n", config->recursive);
-	printf("a: %d\n", config->all);
-	printf("t: %d\n", config->time_sort);
-	printf("d: %d\n", config->directory);
-	printf("h: %d\n", config->human_readable);
-	printf("entries: %d\n", config->total_entries);
-	printf("isatty: %d\n", config->isatty);
-	while (config->files[index]) {
-		printf("file: %s\n", config->files[index]);
-		index++;
-	}
-}
-
-void loop(ls_config *config)
-{
-	int index, ret;
-	struct stat info;
-	DIR *directory;
-	struct dirent *file;
-
-	index = 0;
-	ret = 0;
-	
-	/* loop through config files and print info */
-	for (;config->files[index]; index++) {
-		ret = stat(config->files[index], &info);
-		if (ret) {
-			printf("error %s\n", config->files[index]);
-			// check the error message and continue
+	index = -1;
+	while (++index < config->total_entries) {
+		printf("index: %d, total_entries %d\n", index, config->total_entries);
+		if (files[index].name[0] == '.' && !config->all)
 			continue;
-		}
-		switch (info.st_mode & S_IFMT) {
-			case S_IFBLK: 
-				printf("block device\n");
-				break;
-			case S_IFCHR:  printf("character device\n");        break;
-			case S_IFDIR:
-				directory = opendir(config->files[index]);
-				if (directory) {
-					while ((file = readdir(directory)) != NULL) {
-						if (file->d_name[0] !=  '.') {
-							if (config->isatty)
-								printf("%s  ", file->d_name);
-							else
-								printf("%s\n", file->d_name);
-						}
+		lstat(files[index].name, (struct stat *)&files[index]);
+		remove_non_alnum_chars(files[index].name, files[index].alphanum_name);
+		get_user_uid(files[index].stat.st_uid, files[index].owner_name);
+		get_guid(files[index].stat.st_gid, files[index].group_name);
+	}
+	index = 0;
+	/*while (index < config->total_entries) {*/
+	/*	printf("%s\n",files[index].name);*/
+	/*	printf("%s\n",files[index].alphanum_name);*/
+	/*	printf("%s\n",files[index].owner_name);*/
+	/*	printf("%s\n",files[index].group_name);*/
+	/*	index++;*/
+	/*}*/
+}
+/**
+ * @brief set file_t struct with file names
+ *
+ * @param config  global config
+ * @param files array of file_t of total_entries + 1
+ * @param argc arg count 
+ * @param argv array of args passed to program.
+ */
+void set_files(ls_config *config, file_t *files, int argc, char **argv)
+{
+	int curr_entry = 0;
+	DIR *dir = NULL;
+	if (argc == 1) {
+		strcpy(files->name, ".");
+	}
+	else {
+		for (int i = 1; argv[i]; i++) {
+			if (argv[i][0] != '-') {
+				if (curr_entry < config->total_entries) {
+					strcpy(files[curr_entry].name, argv[i]);
+					if ((dir = opendir(files[curr_entry].name))) {
+						files[curr_entry].is_dir = true;
+						closedir(dir);
 					}
-					if (config->isatty)
-						printf("\n");
-					closedir(directory);
+					++curr_entry;
 				}
-				break;
-			case S_IFIFO:  printf("FIFO/pipe\n");               break;
-			case S_IFLNK:  printf("symlink\n");                 break;
-			case S_IFREG:  printf("regular file\n");            break;
-			case S_IFSOCK: printf("socket\n");                  break;
-			default:       printf("unknown?\n");                break;	
+			}
 		}
-
 	}
 }
 
 int main(int argc, char *argv[])
 {
 	int ret;
+	file_t *files;
 
 	ls_config	  config;
+	files = NULL;
 	const struct argp argp = {
 		.options = options,
 		.parser = parse_opt,
@@ -251,12 +228,11 @@ int main(int argc, char *argv[])
 	};
 	init_config(&config);
 	ret = argp_parse(&argp, argc, argv, 0, 0, &config);
-	/*
-	* here ideally I should sort the files to be printed
-	* before the loop
-	*/
-	loop(&config);
-	/*debug_config(&config);*/
-	deinit_config(&config);
+	if (config.total_entries == 0)
+		++config.total_entries;
+	files = ft_calloc(config.total_entries + 1, sizeof(file_t));
+	set_files(&config, files, argc, argv);
+	loop(&config, files);
+	/*deinit_config(&config);*/
 	return (ret);
 }

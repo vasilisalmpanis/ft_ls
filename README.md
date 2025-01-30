@@ -53,3 +53,13 @@ Bonus:
 GNU argp will be used for option parsing
 and display of options.
 ```
+
+##### NOTES:
+```
+printf("%-*s", 8, "abc")
+/* you can pass programatically how much padding you want printf to add. */
+```
+### References:
+1. [StackOverflow](https://stackoverflow.com/questions/75570802/how-does-ls-exa-lsd-compute-columns-and-rows-when-printing-filenames#:~:text=It%20first%20calculates%20the%20maximum,is%20set%20to%20that%20instead)  
+2. [Reinventing the wheel](https://mmzeynalli.dev/posts/reinvent/ls/part3/)  
+
