@@ -100,3 +100,83 @@ void get_guid(int gid, char *group)
 	grp = getgrgid(gid);
 	ft_strlcpy(group, grp->gr_name, PATH_MAX);
 }
+
+int get_window_width()
+{
+    struct winsize w;
+    ioctl(0, TIOCGWINSZ, &w);
+    return w.ws_col;
+}
+
+void update_widths(window_t *widths, file_t *file) {
+	widths->inode_width = MAX(widths->inode_width, NUM_LEN((int)file->stat.st_ino));
+	widths->nlink_width = MAX(widths->nlink_width, NUM_LEN((int)file->stat.st_nlink));
+	widths->ownerid_width = MAX(widths->ownerid_width, NUM_LEN(file->stat.st_uid));
+	widths->ownername_width = MAX(widths->ownername_width, (int)ft_strlen(file->owner_name));
+	widths->groupid_width = MAX(widths->groupid_width, NUM_LEN(file->stat.st_gid));
+	widths->groupname_width = MAX(widths->groupname_width, (int)ft_strlen(file->group_name));
+	int size_width = NUM_LEN((int)file->stat.st_size);
+	if (S_ISCHR(file->stat.st_mode) || S_ISBLK(file->stat.st_mode))
+		size_width = NUM_LEN(major(file->stat.st_rdev)) + NUM_LEN(minor(file->stat.st_rdev)) + 2; // major, minor
+	widths->size_width = MAX(widths->size_width, size_width);
+	widths->total_blocks += file->stat.st_blocks / 2;
+}
+
+/**
+ * @brief return file indicator based on permission string
+ *
+ * @param permission ptr to string
+ * @return char indicator
+ */
+char get_indicator(char *permission)
+{
+    switch (permission[0])
+    {
+    case '-':
+        if (permission[3] == 'x' || permission[6] == 'x' || permission[9] == 'x')
+            return '*'; // executable
+
+        return 0;
+    case 'd': 
+        return '/'; // directory
+    case 'l':
+        return '@'; // symbolic link
+    case 's':
+        return '='; // socket
+    case 'p':
+        return '|'; // pipe
+    default:
+        return 0;
+    }
+}
+
+void get_permissions(mode_t mode, char *permission)
+{
+    if (S_ISREG(mode))
+        permission[0] = '-';
+    else if (S_ISDIR(mode))
+        permission[0] = 'd';
+    else if (S_ISLNK(mode))
+        permission[0] = 'l';
+    else if (S_ISCHR(mode))
+        permission[0] = 'c';
+    else if (S_ISBLK(mode))
+        permission[0] = 'b';
+    else if (S_ISSOCK(mode))
+        permission[0] = 's';
+    else if (S_ISFIFO(mode))
+        permission[0] = 'p';
+
+    permission[1] = (mode & S_IRUSR) ? 'r' : '-';
+    permission[2] = (mode & S_IWUSR) ? 'w' : '-';
+    permission[3] = (mode & S_IXUSR) ? 'x' : '-';
+
+    permission[4] = (mode & S_IRGRP) ? 'r' : '-';
+    permission[5] = (mode & S_IWGRP) ? 'w' : '-';
+    permission[6] = (mode & S_IXGRP) ? 'x' : '-';
+
+    permission[7] = (mode & S_IROTH) ? 'r' : '-';
+    permission[8] = (mode & S_IWOTH) ? 'w' : '-';
+    permission[9] = (mode & S_IXOTH) ? 'x' : '-';
+    /*permission[10] = 0;*/
+}

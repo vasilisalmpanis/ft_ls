@@ -1,9 +1,4 @@
-#include <dirent.h>
 #include <ft_ls.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <strings.h>
 
 struct argp_option options[] =
 {
@@ -154,7 +149,7 @@ void init_config(ls_config *config)
 /*	}*/
 /*}*/
 
-void loop(ls_config *config, file_t *files)
+void loop(ls_config *config, file_t *files, window_t *widths)
 {
 	/*
 	* here ideally I should sort the files to be printed
@@ -163,21 +158,36 @@ void loop(ls_config *config, file_t *files)
 	int index;	
 
 	index = -1;
+	(void) widths;
 	while (++index < config->total_entries) {
-		printf("index: %d, total_entries %d\n", index, config->total_entries);
 		if (files[index].name[0] == '.' && !config->all)
 			continue;
-		lstat(files[index].name, (struct stat *)&files[index]);
+		if (config->long_format) {
+			update_widths(widths, &files[index]);
+			continue;
+		}
 		remove_non_alnum_chars(files[index].name, files[index].alphanum_name);
 		get_user_uid(files[index].stat.st_uid, files[index].owner_name);
 		get_guid(files[index].stat.st_gid, files[index].group_name);
+		get_permissions(files[index].stat.st_mode, files[index].permission);
+		files[index].indicator = get_indicator(files[index].permission);
+		update_widths(widths, &files[index]);
 	}
-	index = 0;
+
+	/* sort
+	 * print regular files together
+	 * print directory contents together if file was a directory
+	 * if recursive option is chosen call loop on each sub dir.
+	 * return
+	 */
+
+	/*index = 0;*/
 	/*while (index < config->total_entries) {*/
-	/*	printf("%s\n",files[index].name);*/
-	/*	printf("%s\n",files[index].alphanum_name);*/
-	/*	printf("%s\n",files[index].owner_name);*/
-	/*	printf("%s\n",files[index].group_name);*/
+	/*	printf("%s ",files[index].name);*/
+	/*	printf("%s ",files[index].owner_name);*/
+	/*	printf("%s ",files[index].group_name);*/
+	/*	printf("%s ",files[index].permission);*/
+	/*	printf("%c\n",files[index].indicator);*/
 	/*	index++;*/
 	/*}*/
 }
@@ -188,24 +198,32 @@ void loop(ls_config *config, file_t *files)
  * @param files array of file_t of total_entries + 1
  * @param argc arg count 
  * @param argv array of args passed to program.
+
  */
 void set_files(ls_config *config, file_t *files, int argc, char **argv)
 {
 	int curr_entry = 0;
-	DIR *dir = NULL;
+	struct stat temp;
 	if (argc == 1) {
-		strcpy(files->name, ".");
+		ft_strlcpy(files->name, ".", 1);
 	}
 	else {
 		for (int i = 1; argv[i]; i++) {
 			if (argv[i][0] != '-') {
 				if (curr_entry < config->total_entries) {
-					strcpy(files[curr_entry].name, argv[i]);
-					if ((dir = opendir(files[curr_entry].name))) {
-						files[curr_entry].is_dir = true;
-						closedir(dir);
+					if (stat(argv[i], &temp) == 0) {
+						ft_strlcpy(files[curr_entry].name, argv[i], ft_strlen(argv[i]) + 1);
+						ft_memmove(&files[curr_entry].stat, &temp, sizeof(temp));
+						if (S_ISDIR(temp.st_mode))
+							files[curr_entry].is_dir = true;
+						++curr_entry;
 					}
-					++curr_entry;
+					else {
+						fprintf(stderr, "ft_ls: cannot access '%s': %s\n",
+							argv[i],
+							strerror(errno));
+						--config->total_entries;
+					}
 				}
 			}
 		}
@@ -216,8 +234,10 @@ int main(int argc, char *argv[])
 {
 	int ret;
 	file_t *files;
+	window_t widths;
 
 	ls_config	  config;
+	widths.window_width = get_window_width();
 	files = NULL;
 	const struct argp argp = {
 		.options = options,
@@ -232,7 +252,7 @@ int main(int argc, char *argv[])
 		++config.total_entries;
 	files = ft_calloc(config.total_entries + 1, sizeof(file_t));
 	set_files(&config, files, argc, argv);
-	loop(&config, files);
+	loop(&config, files, &widths);
 	/*deinit_config(&config);*/
 	return (ret);
 }
