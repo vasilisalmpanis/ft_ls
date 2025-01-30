@@ -1,6 +1,7 @@
 NAME	= ft_ls
-SRC	= ./src/main.c \
-	  ./src/utils.c
+SRC	= ./src/main.c	\
+	  ./src/utils.c \
+	  ./src/sort.c
 
 OBJ	= $(SRC:.c=.o)
 RM	= rm
@@ -10,28 +11,25 @@ INC	= ./include
 
 all: $(NAME)
 
-$(NAME) : libft $(OBJ) 
+$(NAME) : libftprintf $(OBJ) 
 	@if [ -n "$(OBJ)" ]; then \
-		$(CC) $(CFLAGS) -I $(INC) $(OBJ) ./libft/libft.a -o $(NAME); \
+		$(CC) $(CFLAGS) -I$(INC) -I./ft_printf $(OBJ) ./ft_printf/libftprintf.a -o $(NAME); \
 	fi
 
 %.o: %.c
-	$(CC) $(CFLAGS) -I $(INC) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(INC) -I./ft_printf -c $< -o $@
 
 clean:
-	make clean -C ./libft/
+	make clean -C ./ft_printf
 	$(RM) $(OBJ)
 
 fclean: clean
-	make fclean -C ./libft/
+	make fclean -C ./ft_printf
 	$(RM) $(NAME)
 
-libft:
-	make -C ./libft
+libftprintf:
+	make -C ./ft_printf
 
 re: fclean all
 
-clang-format:
-	clang-format -i $(SRC) $(INC)/ft_ls.h
-
-.PHONY: clean fclean re libft
+.PHONY: clean fclean re libft libftprintf

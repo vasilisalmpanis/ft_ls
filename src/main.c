@@ -155,6 +155,7 @@ void loop(ls_config *config, file_t *files, window_t *widths)
 	* here ideally I should sort the files to be printed
 	* before the loop
 	*/
+	/*file_t *dir_children = NULL;*/
 	int index;	
 
 	index = -1;
@@ -162,11 +163,12 @@ void loop(ls_config *config, file_t *files, window_t *widths)
 	while (++index < config->total_entries) {
 		if (files[index].name[0] == '.' && !config->all)
 			continue;
+
+		remove_non_alnum_chars(files[index].name, files[index].alphanum_name);
 		if (config->long_format) {
 			update_widths(widths, &files[index]);
 			continue;
 		}
-		remove_non_alnum_chars(files[index].name, files[index].alphanum_name);
 		get_user_uid(files[index].stat.st_uid, files[index].owner_name);
 		get_guid(files[index].stat.st_gid, files[index].group_name);
 		get_permissions(files[index].stat.st_mode, files[index].permission);
@@ -174,22 +176,50 @@ void loop(ls_config *config, file_t *files, window_t *widths)
 		update_widths(widths, &files[index]);
 	}
 
-	/* sort
+	sort(files, config); // sorted
+	/*
 	 * print regular files together
 	 * print directory contents together if file was a directory
 	 * if recursive option is chosen call loop on each sub dir.
 	 * return
 	 */
+	// set_files from dir
 
-	/*index = 0;*/
-	/*while (index < config->total_entries) {*/
-	/*	printf("%s ",files[index].name);*/
-	/*	printf("%s ",files[index].owner_name);*/
-	/*	printf("%s ",files[index].group_name);*/
-	/*	printf("%s ",files[index].permission);*/
-	/*	printf("%c\n",files[index].indicator);*/
-	/*	index++;*/
-	/*}*/
+	index = 0;
+	while (index < config->total_entries) {
+		if (files[index].is_dir) {
+			index++;
+			continue;
+		}
+		ft_printf("%s ",files[index].name);
+		if (!config->long_format) {
+			++index;
+			continue;
+		}
+		ft_printf("%s ",files[index].owner_name);
+		ft_printf("%s ",files[index].group_name);
+		ft_printf("%s ",files[index].permission);
+		ft_printf("%c\n",files[index].indicator);
+		++index;
+	}
+	ft_printf("\n");
+	index = 0;
+	while (index < config->total_entries) {
+		if (!files[index].is_dir) {
+			index++;
+			continue;
+		}
+		ft_printf("%s ",files[index].name);
+		if (!config->long_format) {
+			++index;
+			continue;
+		}
+		ft_printf("%s ",files[index].owner_name);
+		ft_printf("%s ",files[index].group_name);
+		ft_printf("%s ",files[index].permission);
+		ft_printf("%c\n",files[index].indicator);
+		++index;
+	}
 }
 /**
  * @brief set file_t struct with file names

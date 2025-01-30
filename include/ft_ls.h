@@ -16,7 +16,7 @@
 #include <sys/sysmacros.h>
 
 #include "docs.h"
-#include "../libft/libft.h"
+#include "../ft_printf/ft_printf.h"
 
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define NUM_LEN(n) (snprintf(0, 0, "%+d", (n)) - 1)
@@ -64,3 +64,6 @@ int get_window_width();
 void update_widths(window_t *widths, file_t *file);
 char get_indicator(char *permission);
 void get_permissions(mode_t mode, char *permission);
+
+/* sort */
+void sort(file_t *files, ls_config *config);
