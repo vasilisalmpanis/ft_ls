@@ -20,6 +20,14 @@
 
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #define NUM_LEN(n) (snprintf(0, 0, "%+d", (n)) - 1)
+#define MIN_COLUMN_WIDTH 3
+
+typedef struct
+{
+    int valid;
+    int line_len;
+    int *max_len; // Max possible length for each col
+} column_info;
 
 typedef struct window_t {
 	int window_width;
@@ -66,4 +74,4 @@ char get_indicator(char *permission);
 void get_permissions(mode_t mode, char *permission);
 
 /* sort */
-void sort(file_t *files, ls_config *config);
+void sort(file_t *files, int total_entries);

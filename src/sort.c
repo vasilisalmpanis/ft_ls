@@ -39,9 +39,9 @@ int cmp_alphabetical(const void *a, const void *b) {
 	return ft_strcasecmp(name1, name2) ?: len_cmp;
 }
 
-void sort(file_t *files, ls_config *config) {
+void sort(file_t *files, int total_entries) {
 	/*printf("num of entries %d\n", config->total_entries);*/
 	int (*cmp) (const void *, const void*);
 	cmp = cmp_alphabetical;
-	bubble_sort(files, config->total_entries, sizeof(file_t), cmp);
+	bubble_sort(files, total_entries, sizeof(file_t), cmp);
 }

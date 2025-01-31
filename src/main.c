@@ -1,4 +1,6 @@
+#include "libft/libft.h"
 #include <ft_ls.h>
+#include <stdlib.h>
 
 struct argp_option options[] =
 {
@@ -69,8 +71,6 @@ struct argp_option options[] =
  */
 int set_next_entry(ls_config *ls_config)
 {
-	if (ls_config->total_entries + 1 > 1023)
-		return (0);
 	/*ls_config->files[ls_config->total_entries] = ft_strdup(arg);*/
 	/*if (!ls_config->files[ls_config->total_entries])*/
 		/*return (1);*/
@@ -135,21 +135,121 @@ void init_config(ls_config *config)
 	config->isatty = isatty(1);
 }
 
-/**
- * @brief deinit config
- * Free all the allocated memory and possibly
- * close all open file desc.
- * @param config 
- */
-/*void deinit_config(ls_config *config)*/
-/*{*/
-/*	int index;*/
-/**/
-/*	index = 0;*/
-/*	}*/
-/*}*/
+int get_col_count(column_info *column_configs, int file_count, ls_config *config, file_t *files, window_t *widths)
+{
+	(void)config;
+	int max_idx = widths->window_width / MIN_COLUMN_WIDTH - 1;
+	int max_cols = (max_idx < file_count) ? max_idx : file_count;
+	/*int inode = (options->show_inode) ? widths->inode_width : 0;*/
+	int inode = 0;
+	for (int file_idx = 0; file_idx < file_count; ++file_idx) {
+		for (int config_idx = 0; config_idx < max_cols; ++config_idx) {
+			if (!column_configs[config_idx].valid)
+				continue;
+			int rows = (file_count + config_idx) / (config_idx + 1);
 
-void loop(ls_config *config, file_t *files, window_t *widths)
+			if ((rows * (config_idx + 1) - file_count) > rows)
+			{
+				column_configs[config_idx].valid = 0;
+				continue;
+			}
+			int col = file_idx / rows;
+			int name_width = ft_strlen(files[file_idx].name);
+
+			/* add later */
+			/*if (options->inside_quotes)*/
+			/*	name_width += 2;*/
+			/**/
+			/*if (options->append_file_indicators && files[file_idx].indicator)*/
+			/*	name_width += 1;*/
+			/*else if (options->append_file_indicators && files[file_idx].permission[0] == 'd')*/
+			/*	name_width += 1;*/
+			if (name_width > column_configs[config_idx].max_len[col])
+			{
+				column_configs[config_idx].line_len += name_width - column_configs[config_idx].max_len[col];
+				column_configs[config_idx].max_len[col] = name_width;
+			}
+
+			// Consider spaces as well
+			if (column_configs[config_idx].line_len + (2 * config_idx) + (inode * (config_idx + 1)) > widths->window_width)
+				column_configs[config_idx].valid = 0;
+		}
+	}
+	int selected_config = max_cols - 1;
+	while (selected_config >= 0 && (!column_configs[selected_config].valid || !column_configs[selected_config].max_len[selected_config]))
+		selected_config--;
+
+	return selected_config + 1;
+}
+
+void print_tabular(file_t *files, int file_count, ls_config *config, window_t *widths) {
+	column_info *column_configs;
+	int ncols;
+	int nrows;
+
+	column_configs = ft_calloc(file_count, sizeof(column_info));	
+	if (!column_configs)
+		return ;
+	for (int i=0; i < config->total_entries; i++) {
+		column_configs[i].valid = 1;
+		column_configs[i].max_len = ft_calloc(file_count, sizeof(int));
+		if (column_configs[i].max_len == NULL) {
+			if (i == 0) {
+				free(column_configs);
+			}
+			else {
+				for (int j = i - 1; j >= 0; j--)
+					free(column_configs[j].max_len);
+				free(column_configs);
+			}
+			return ;
+		}
+	}
+	ncols = get_col_count(column_configs, file_count, config, files, widths);
+	nrows = (config->total_entries + ncols - 1) / ncols;
+	for (int i = 0; i < nrows; i++)
+	{
+		for (int j = 0; j < ncols; j++)
+		{
+			int file_idx = i + j * nrows;
+
+			/*if (options->show_inode)*/
+				/*printf("%*d ", widths->inode_width, files[file_idx].st_ino);*/
+
+			/*print_padded_name(files[file_idx], options, column_configs[ncols - 1].max_len[j]);*/
+			// for now //
+			printf("%-*s", column_configs[ncols - 1].max_len[j], files[file_idx].name);
+			if (j < ncols - 1)
+				printf("  ");
+		}
+		printf("\n");
+	}
+	for (int i=0; i < file_count; i++) {
+		free(column_configs[i].max_len);
+	}
+	free(column_configs);
+	// print stuff //
+}
+
+void print_ls(file_t *files, int file_count, ls_config *config, window_t *widths)
+{
+	printf("count of files%d\n", file_count);
+	if (!config->total_entries)
+		return;
+
+	/*if (options->print_style == LIST_FORMAT)*/
+	/*    print_list(files, count, options, widths);*/
+	/*else if (options->print_style == COMMA_SEPARATED_FORMAT)*/
+	/*    print_comma_sep(files, count, options, widths);*/
+	/*else*/
+	/*for (int i = 0; i < file_count; i++) {*/
+		/*printf("%s\n", files[i].name);*/
+		/*(void)widths;*/
+	/*}*/
+	print_tabular(files, file_count, config, widths);
+}
+
+void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 {
 	/*
 	* here ideally I should sort the files to be printed
@@ -160,7 +260,7 @@ void loop(ls_config *config, file_t *files, window_t *widths)
 
 	index = -1;
 	(void) widths;
-	while (++index < config->total_entries) {
+	while (++index < file_count) {
 		if (files[index].name[0] == '.' && !config->all)
 			continue;
 
@@ -169,14 +269,19 @@ void loop(ls_config *config, file_t *files, window_t *widths)
 			update_widths(widths, &files[index]);
 			continue;
 		}
-		get_user_uid(files[index].stat.st_uid, files[index].owner_name);
-		get_guid(files[index].stat.st_gid, files[index].group_name);
+		// biggest bottleneck so far is here
+		// solutions linked list of uid, guid and str repr to hold these
+		// and not ask for them all the time
+
+		/*get_user_uid(files[index].stat.st_uid, files[index].owner_name);*/
+		/*get_guid(files[index].stat.st_gid, files[index].group_name);*/
 		get_permissions(files[index].stat.st_mode, files[index].permission);
 		files[index].indicator = get_indicator(files[index].permission);
 		update_widths(widths, &files[index]);
 	}
+	printf("hello world\n");
 
-	sort(files, config); // sorted
+	/*sort(files, file_count); // sorted*/
 	/*
 	 * print regular files together
 	 * print directory contents together if file was a directory
@@ -184,42 +289,7 @@ void loop(ls_config *config, file_t *files, window_t *widths)
 	 * return
 	 */
 	// set_files from dir
-
-	index = 0;
-	while (index < config->total_entries) {
-		if (files[index].is_dir) {
-			index++;
-			continue;
-		}
-		ft_printf("%s ",files[index].name);
-		if (!config->long_format) {
-			++index;
-			continue;
-		}
-		ft_printf("%s ",files[index].owner_name);
-		ft_printf("%s ",files[index].group_name);
-		ft_printf("%s ",files[index].permission);
-		ft_printf("%c\n",files[index].indicator);
-		++index;
-	}
-	ft_printf("\n");
-	index = 0;
-	while (index < config->total_entries) {
-		if (!files[index].is_dir) {
-			index++;
-			continue;
-		}
-		ft_printf("%s ",files[index].name);
-		if (!config->long_format) {
-			++index;
-			continue;
-		}
-		ft_printf("%s ",files[index].owner_name);
-		ft_printf("%s ",files[index].group_name);
-		ft_printf("%s ",files[index].permission);
-		ft_printf("%c\n",files[index].indicator);
-		++index;
-	}
+	print_ls(files, file_count, config, widths);
 }
 /**
  * @brief set file_t struct with file names
@@ -282,7 +352,7 @@ int main(int argc, char *argv[])
 		++config.total_entries;
 	files = ft_calloc(config.total_entries + 1, sizeof(file_t));
 	set_files(&config, files, argc, argv);
-	loop(&config, files, &widths);
+	loop(&config, config.total_entries, files, &widths);
 	/*deinit_config(&config);*/
 	return (ret);
 }
