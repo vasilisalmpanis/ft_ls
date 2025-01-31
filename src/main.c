@@ -166,17 +166,23 @@ int get_col_count(column_info *column_configs, int file_count, ls_config *config
 			/*	name_width += 1;*/
 			if (name_width > column_configs[config_idx].max_len[col])
 			{
-				column_configs[config_idx].line_len += name_width - column_configs[config_idx].max_len[col];
+				column_configs[config_idx].line_len +=
+					name_width - column_configs[config_idx].max_len[col];
 				column_configs[config_idx].max_len[col] = name_width;
 			}
 
 			// Consider spaces as well
-			if (column_configs[config_idx].line_len + (2 * config_idx) + (inode * (config_idx + 1)) > widths->window_width)
+			if (column_configs[config_idx].line_len +
+					(2 * config_idx) + (inode * (config_idx + 1)) > widths->window_width)
 				column_configs[config_idx].valid = 0;
 		}
 	}
 	int selected_config = max_cols - 1;
-	while (selected_config >= 0 && (!column_configs[selected_config].valid || !column_configs[selected_config].max_len[selected_config]))
+	while (
+			selected_config >= 0
+			&& (!column_configs[selected_config].valid
+			|| !column_configs[selected_config].max_len[selected_config])
+		)
 		selected_config--;
 
 	return selected_config + 1;
@@ -218,7 +224,8 @@ void print_tabular(file_t *files, int file_count, ls_config *config, window_t *w
 
 			/*print_padded_name(files[file_idx], options, column_configs[ncols - 1].max_len[j]);*/
 			// for now //
-			printf("%-*s", column_configs[ncols - 1].max_len[j], files[file_idx].name);
+			if (file_idx < file_count)
+				printf("%-*s", column_configs[ncols - 1].max_len[j], files[file_idx].name);
 			if (j < ncols - 1)
 				printf("  ");
 		}
@@ -233,7 +240,6 @@ void print_tabular(file_t *files, int file_count, ls_config *config, window_t *w
 
 void print_ls(file_t *files, int file_count, ls_config *config, window_t *widths)
 {
-	printf("count of files%d\n", file_count);
 	if (!config->total_entries)
 		return;
 
@@ -279,7 +285,6 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 		files[index].indicator = get_indicator(files[index].permission);
 		update_widths(widths, &files[index]);
 	}
-	printf("hello world\n");
 
 	/*sort(files, file_count); // sorted*/
 	/*
