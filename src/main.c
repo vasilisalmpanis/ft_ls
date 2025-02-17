@@ -436,8 +436,19 @@ int main(int argc, char *argv[])
 	init_config(&config);
 	ret = argp_parse(&argp, argc, argv, 0, 0, &config);
 	files = create_initial_struct(files, &config, argv);
+	sort(files, config.total_entries);
 	// looks like we first sort all regular files and print them and then do the same with folders
 	loop(&config, config.total_entries, files, &widths);
 	free(files);
 	return (ret);
 }
+
+/*
+ * Steps for ft_ls
+ * 1. Parse input
+ * 2. Set content using stat
+ * 3. Sort
+ * 4. Print non dir files if input for ft_ls was more than one
+ * 5. Go to directories and print all contents
+ * 6. If recursive option is set got 2 but now print all files.
+ */
