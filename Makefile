@@ -6,7 +6,7 @@ SRC	= ./src/main.c	\
 OBJ	= $(SRC:.c=.o)
 RM	= rm
 CC	= clang
-CFLAGS	= -Wall -Wextra -Werror
+CFLAGS	= -Wall -Wextra -Werror -g
 INC	= ./include
 
 all: $(NAME)
