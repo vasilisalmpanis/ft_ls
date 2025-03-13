@@ -1,9 +1,12 @@
 #include "libft/libft.h"
 #include <dirent.h>
 #include <ft_ls.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-file_t *get_dir_content(ls_config *config, char *file);
+#include <unistd.h>
+file_t *get_dir_content(ls_config *config, char *file, int num_of_files);
+int get_dir_file_count(ls_config *config, char *name);
 
 struct argp_option options[] =
 {
@@ -138,9 +141,8 @@ void init_config(ls_config *config)
 	config->isatty = isatty(1);
 }
 
-int get_col_count(column_info *column_configs, int file_count, ls_config *config, file_t *files, window_t *widths)
+int get_col_count(column_info *column_configs, int file_count, file_t *files, window_t *widths)
 {
-	(void)config;
 	int max_idx = widths->window_width / MIN_COLUMN_WIDTH - 1;
 	int max_cols = (max_idx < file_count) ? max_idx : file_count;
 	/*int inode = (options->show_inode) ? widths->inode_width : 0;*/
@@ -191,17 +193,20 @@ int get_col_count(column_info *column_configs, int file_count, ls_config *config
 	return selected_config + 1;
 }
 
-void print_tabular(file_t *files, int file_count, ls_config *config, window_t *widths) {
+void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) {
 	column_info *column_configs;
 	int ncols;
 	int nrows;
+	int dir_count = 0;
 
 	column_configs = ft_calloc(file_count, sizeof(column_info));	
 	if (!column_configs)
 		return ;
-	for (int i=0; i < config->total_entries; i++) {
+	for (int i=0; i < file_count; i++) {
 		column_configs[i].valid = 1;
 		column_configs[i].max_len = ft_calloc(file_count, sizeof(int));
+		if (files[i].is_dir)
+			dir_count++;
 		if (column_configs[i].max_len == NULL) {
 			if (i == 0) {
 				free(column_configs);
@@ -214,9 +219,13 @@ void print_tabular(file_t *files, int file_count, ls_config *config, window_t *w
 			return ;
 		}
 	}
-	ncols = get_col_count(column_configs, file_count, config, files, widths);
+	ncols = get_col_count(column_configs, file_count, files, widths);
 	ncols += ncols == 0 ? 1 : 0;
-	nrows = (config->total_entries + ncols - 1) / ncols;
+	if (begin)
+		nrows = (file_count + ncols - 1) / ncols;
+	else
+		nrows = (file_count - dir_count + ncols - 1) / ncols;
+
 	for (int i = 0; i < nrows; i++)
 	{
 		for (int j = 0; j < ncols; j++)
@@ -228,6 +237,8 @@ void print_tabular(file_t *files, int file_count, ls_config *config, window_t *w
 
 			/*print_padded_name(files[file_idx], options, column_configs[ncols - 1].max_len[j]);*/
 			// for now //
+			if (begin && files[file_idx].is_dir)
+				continue;
 			if (file_idx < file_count)
 				printf("%-*s", column_configs[ncols - 1].max_len[j], files[file_idx].name);
 			if (j < ncols - 1)
@@ -242,7 +253,7 @@ void print_tabular(file_t *files, int file_count, ls_config *config, window_t *w
 	// print stuff //
 }
 
-void print_ls(file_t *files, int file_count, ls_config *config, window_t *widths)
+void print_ls(file_t *files, int file_count, window_t *widths, bool begin)
 {
 	if (!file_count)
 		return;
@@ -256,7 +267,7 @@ void print_ls(file_t *files, int file_count, ls_config *config, window_t *widths
 		/*printf("%s\n", files[i].name);*/
 		/*(void)widths;*/
 	/*}*/
-	print_tabular(files, file_count, config, widths);
+	print_tabular(files, file_count, widths, begin);
 }
 
 void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
@@ -297,17 +308,19 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 	 * if recursive option is chosen call loop on each sub dir.
 	 * return
 	 */
-	// set_files from dir
-	print_ls(files, file_count, config, widths);
 
 	for (int i = 0; i < file_count; i++) {
-		/*printf("here %d\n", files[i].is_dir);*/
 		if (files[i].is_dir) {
-			file_t *temp = get_dir_content(config, files[i].name);
+			int num_of_files = get_dir_file_count(config, files[i].name);
+			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
 			if (!temp)
 				continue;
-			/*printf("%s\n", temp->name);*/
+			if (file_count > 1)
+				printf("%s:\n", files[i].name);
+			print_ls(temp, num_of_files, widths, true);
 			free(temp);
+			if (file_count > 1 && i < file_count - 1)
+				printf("\n");
 		}
 	}
 }
@@ -339,33 +352,39 @@ void fill_files(ls_config *config, file_t *files, char *dir) {
 	directory = NULL;
 	if (!(directory = opendir(dir)))
 		return;
+	if (chdir(dir)) {
+		printf("error changing current working dir\n");
+	}
 	while ((content = readdir(directory))) {
 		if (content->d_name[0] == '.'  && !config->all)
 			continue;
-		if (stat(content->d_name, &files[i++].stat))
+
+		if (stat(content->d_name, &files[i].stat))
 			continue;
-		/*if (content->d_type & DT_DIR)*/
-		/*printf("file %s\n", content->d_name);*/
+		ft_memmove(&files[i].name, content->d_name, ft_strlen(content->d_name));
+		i++;
+	}
+	if (!(ft_strlen(dir) == 1 && !ft_memcmp(".", dir, ft_strlen(dir)))) {
+		chdir("..");
 	}
 	closedir(directory);
 	return;
 }
 
-file_t *get_dir_content(ls_config *config, char *file) {
-	/*DIR *directory;*/
-	int num_of_files;
-	/*struct dirent *content;*/
+file_t *get_dir_content(ls_config *config, char *dir, int num_of_files)
+{
 	file_t *files;
 
-	num_of_files = get_dir_file_count(config, file);
 	if (num_of_files == 0)
 		return NULL;
-	files = (file_t *)malloc(num_of_files * sizeof(file_t));
+	files = (file_t *)malloc((num_of_files + 1) * sizeof(file_t));
 	if (!files)
 		return NULL;
-	fill_files(config, files, file);
+	ft_bzero(files, (num_of_files + 1) * sizeof(file_t));
+	fill_files(config, files, dir);
 	return files;
 }
+
 /**
  * @brief set file_t struct with file names
  *
@@ -437,6 +456,7 @@ int main(int argc, char *argv[])
 	ret = argp_parse(&argp, argc, argv, 0, 0, &config);
 	files = create_initial_struct(files, &config, argv);
 	sort(files, config.total_entries);
+	print_ls(files, config.total_entries, &widths, true);
 	// looks like we first sort all regular files and print them and then do the same with folders
 	loop(&config, config.total_entries, files, &widths);
 	free(files);
