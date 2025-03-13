@@ -318,7 +318,8 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
 			if (i > 0)
 				printf("\n");
-			printf("%s:\n", files[i].name);
+			if (file_count && num_of_files)
+				printf("%s:\n", files[i].name);
 			if (!temp)
 				continue;
 			print_ls(temp, num_of_files, widths, true);
