@@ -198,6 +198,7 @@ void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) 
 	int ncols;
 	int nrows;
 	int dir_count = 0;
+	int printed;
 
 	column_configs = ft_calloc(file_count, sizeof(column_info));	
 	if (!column_configs)
@@ -228,6 +229,7 @@ void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) 
 
 	for (int i = 0; i < nrows; i++)
 	{
+		printed = 0;
 		for (int j = 0; j < ncols; j++)
 		{
 			int file_idx = i + j * nrows;
@@ -240,11 +242,12 @@ void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) 
 			if (begin && files[file_idx].is_dir)
 				continue;
 			if (file_idx < file_count)
-				printf("%-*s", column_configs[ncols - 1].max_len[j], files[file_idx].name);
+				printed += printf("%-*s", column_configs[ncols - 1].max_len[j], files[file_idx].name);
 			if (j < ncols - 1)
-				printf("  ");
+				printed += printf("  ");
 		}
-		printf("\n");
+		if (printed)
+			printf("\n");
 	}
 	for (int i=0; i < file_count; i++) {
 		free(column_configs[i].max_len);
@@ -313,14 +316,15 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 		if (files[i].is_dir) {
 			int num_of_files = get_dir_file_count(config, files[i].name);
 			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
+			if (i > 0)
+				printf("\n");
+			printf("%s:\n", files[i].name);
 			if (!temp)
 				continue;
-			if (file_count > 1)
-				printf("%s:\n", files[i].name);
 			print_ls(temp, num_of_files, widths, true);
 			free(temp);
-			if (file_count > 1 && i < file_count - 1)
-				printf("\n");
+			/*if (file_count > 1 && i < file_count - 1)*/
+				/*printf("\n");*/
 		}
 	}
 }
