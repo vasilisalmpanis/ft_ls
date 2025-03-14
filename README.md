@@ -63,6 +63,12 @@ printf("%-*s", 8, "abc")
 ```
 This project uses github actions to check compilation and tests
 
+### Testing
+A small bash script is provided to tests the exit code of
+ft_ls and ls and make sure that they are identical.Potentially
+output checks will be added too.
+To add tests look at [tests.sh](./tests/tests.sh)
+
 ### References:
 1. [StackOverflow](https://stackoverflow.com/questions/75570802/how-does-ls-exa-lsd-compute-columns-and-rows-when-printing-filenames#:~:text=It%20first%20calculates%20the%20maximum,is%20set%20to%20that%20instead)  
 2. [Reinventing the wheel](https://mmzeynalli.dev/posts/reinvent/ls/part3/)  
