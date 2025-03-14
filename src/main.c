@@ -1,10 +1,6 @@
 #include "libft/libft.h"
-#include <dirent.h>
 #include <ft_ls.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+
 file_t *get_dir_content(ls_config *config, char *file, int num_of_files);
 int get_dir_file_count(ls_config *config, char *name);
 
@@ -308,22 +304,25 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 
 	for (int i = 0; i < file_count; i++) {
 		if (files[i].is_dir) {
+			char *curr_dir = files[i].name;
 			int num_of_files = get_dir_file_count(config, files[i].name);
+			chdir(curr_dir);
 			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
 			sort(temp, num_of_files);
 			if (i > 0)
 				printf("\n");
 			if (config->print_dir_names)
 				printf("%s:\n", files[i].name);
-			if (!temp)
+			if (!temp) {
+				chdir("..");
 				continue;
+			}
 			print_ls(temp, num_of_files, widths, false);
 			if (config->recursive) {
 				loop(config, num_of_files, temp, widths);
 			}
+			chdir("..");
 			free(temp);
-			/*if (file_count > 1 && i < file_count - 1)*/
-				/*printf("\n");*/
 		}
 	}
 }
@@ -348,16 +347,17 @@ int get_dir_file_count(ls_config *config, char *name) {
 }
 
 void fill_files(ls_config *config, file_t *files, char *dir) {
+	(void)dir;
 	DIR *directory;
 	struct dirent *content;
 	int i = 0;
 
 	directory = NULL;
-	if (!(directory = opendir(dir)))
+	if (!(directory = opendir(".")))
 		return;
-	if (chdir(dir)) {
-		printf("error changing current working dir\n");
-	}
+	/*if (chdir(dir)) {*/
+		/*printf("error changing current working dir\n");*/
+	/*}*/
 	while ((content = readdir(directory))) {
 		if (content->d_name[0] == '.'  && !config->all)
 			continue;
@@ -370,9 +370,9 @@ void fill_files(ls_config *config, file_t *files, char *dir) {
 		}
 		i++;
 	}
-	if (!(ft_strlen(dir) == 1 && !ft_memcmp(".", dir, ft_strlen(dir)))) {
-		chdir("..");
-	}
+	/*if (!(ft_strlen(dir) == 1 && !ft_memcmp(".", dir, ft_strlen(dir)))) {*/
+		/*chdir("..");*/
+	/*}*/
 	closedir(directory);
 	return;
 }
