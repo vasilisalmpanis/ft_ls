@@ -275,11 +275,6 @@ void print_ls(file_t *files, int file_count, window_t *widths, bool begin)
 
 void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 {
-	/*
-	* here ideally I should sort the files to be printed
-	* before the loop
-	*/
-	/*file_t *dir_children = NULL;*/
 	int index;	
 
 	index = -1;
@@ -297,14 +292,13 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 		// solutions linked list of uid, guid and str repr to hold these
 		// and not ask for them all the time
 
-		/*get_user_uid(files[index].stat.st_uid, files[index].owner_name);*/
-		/*get_guid(files[index].stat.st_gid, files[index].group_name);*/
+		get_user_uid(files[index].stat.st_uid, files[index].owner_name);
+		get_guid(files[index].stat.st_gid, files[index].group_name);
 		get_permissions(files[index].stat.st_mode, files[index].permission);
 		files[index].indicator = get_indicator(files[index].permission);
 		update_widths(widths, &files[index]);
 	}
 
-	sort(files, file_count); // sorted
 	/*
 	 * print regular files together
 	 * print directory contents together if file was a directory
@@ -316,13 +310,17 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 		if (files[i].is_dir) {
 			int num_of_files = get_dir_file_count(config, files[i].name);
 			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
+			sort(temp, num_of_files);
 			if (i > 0)
 				printf("\n");
 			if (config->print_dir_names)
 				printf("%s:\n", files[i].name);
 			if (!temp)
 				continue;
-			print_ls(temp, num_of_files, widths, true);
+			print_ls(temp, num_of_files, widths, false);
+			if (config->recursive) {
+				loop(config, num_of_files, temp, widths);
+			}
 			free(temp);
 			/*if (file_count > 1 && i < file_count - 1)*/
 				/*printf("\n");*/
@@ -367,6 +365,9 @@ void fill_files(ls_config *config, file_t *files, char *dir) {
 		if (stat(content->d_name, &files[i].stat))
 			continue;
 		ft_memmove(&files[i].name, content->d_name, ft_strlen(content->d_name));
+		if (S_ISDIR(files[i].stat.st_mode)) {
+			files[i].is_dir = true;
+		}
 		i++;
 	}
 	if (!(ft_strlen(dir) == 1 && !ft_memcmp(".", dir, ft_strlen(dir)))) {

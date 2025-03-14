@@ -29,8 +29,8 @@ void bubble_sort(void *base, int num_elements, size_t element_size,
 }
 
 int cmp_alphabetical(const void *a, const void *b) {
-	char *name1 = ((file_t *)a)->alphanum_name;
-	char *name2 = ((file_t *)b)->alphanum_name;
+	char *name1 = ((file_t *)a)->name;
+	char *name2 = ((file_t *)b)->name;
 
 	int len_cmp = ft_strlen(((file_t *)a)->name) - ft_strlen(((file_t *)b)->name);
 	if (ft_strlen(name1) || ft_strlen(name2))
