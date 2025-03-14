@@ -60,6 +60,7 @@ typedef struct ls_config {
 	bool directory;		/* -d option */
 	bool time_sort;		/* -t option */
 	bool isatty;
+	bool print_dir_names;
 	int  total_entries;
 } ls_config;
 

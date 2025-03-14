@@ -318,7 +318,7 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
 			if (i > 0)
 				printf("\n");
-			if (file_count && num_of_files)
+			if (config->print_dir_names)
 				printf("%s:\n", files[i].name);
 			if (!temp)
 				continue;
@@ -402,6 +402,7 @@ file_t *get_dir_content(ls_config *config, char *dir, int num_of_files)
 void set_files(ls_config *config, file_t *files, char **argv)
 {
 	int curr_entry = 0;
+	int dir_count = 0, file_count = 0;
 	struct stat temp;
 	for (int i = 1; argv[i]; i++) {
 		if (argv[i][0] != '-') {
@@ -409,8 +410,12 @@ void set_files(ls_config *config, file_t *files, char **argv)
 				if (stat(argv[i], &temp) == 0) {
 					ft_strlcpy(files[curr_entry].name, argv[i], ft_strlen(argv[i]) + 1);
 					ft_memmove(&files[curr_entry].stat, &temp, sizeof(temp));
-					if (S_ISDIR(temp.st_mode))
+					if (S_ISDIR(temp.st_mode)) {
 						files[curr_entry].is_dir = true;
+						dir_count++;
+					} else {
+						file_count++;
+					}
 					++curr_entry;
 				}
 				else {
@@ -422,6 +427,12 @@ void set_files(ls_config *config, file_t *files, char **argv)
 			}
 		}
 	}
+	if (dir_count > 1)
+		config->print_dir_names = true;
+	else if (dir_count >= 1 && file_count >= 1)
+		config->print_dir_names = true;
+	if (config->recursive)
+		config->print_dir_names = true;
 }
 
 file_t *create_initial_struct(file_t *files, ls_config *config, char **argv)
@@ -434,6 +445,7 @@ file_t *create_initial_struct(file_t *files, ls_config *config, char **argv)
 			if (S_ISDIR(files[0].stat.st_mode))
 				files[0].is_dir = true;
 		}
+		config->print_dir_names = false;
 	} else {
 		files = ft_calloc(config->total_entries, sizeof(file_t));
 		set_files(config, files, argv);
