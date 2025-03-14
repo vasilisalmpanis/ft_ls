@@ -451,7 +451,8 @@ int create_initial_struct(file_t **files, ls_config *config, char **argv)
 		} else {
 			ret = 2;
 		}
-		config->print_dir_names = false;
+		if (config->recursive)
+			config->print_dir_names = true;
 	} else {
 		*files = ft_calloc(config->total_entries, sizeof(file_t));
 		ret = set_files(config, *files, argv);
