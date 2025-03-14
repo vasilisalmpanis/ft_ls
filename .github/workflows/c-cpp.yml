@@ -17,3 +17,5 @@ jobs:
       run: make
     - name: ls
       run: ./ft_ls .
+    - name: run tests
+      run: ./tests/tests.sh

@@ -7,6 +7,7 @@ This project is about recoding the ls core utility to learn more about how to in
   in an unexpected manner `Segmentation fault, bus error, double free, etc`. If you  
   are unsure, handle the errors like `ls`.
 * The program cannot have memory leaks.
+* You are not allowed to use the standard `printf` but your own implementation.
 
 ## Allowed Functions
 
@@ -47,7 +48,7 @@ Bonus:
     * You are not required to deal with ACL and extended attributes.
     * The overall display, depending on each option, must stay as identical as possible to  
       the system command. We will be cordial when grading either the padding or the pagination,  
-      but no information can be miss
+      but no information can be missing.
 
 ```text
 GNU argp will be used for option parsing
@@ -58,7 +59,10 @@ and display of options.
 ```
 printf("%-*s", 8, "abc")
 /* you can pass programatically how much padding you want printf to add. */
+//TODO: implement this for ft_printf
 ```
+This project uses github actions to check compilation and tests
+
 ### References:
 1. [StackOverflow](https://stackoverflow.com/questions/75570802/how-does-ls-exa-lsd-compute-columns-and-rows-when-printing-filenames#:~:text=It%20first%20calculates%20the%20maximum,is%20set%20to%20that%20instead)  
 2. [Reinventing the wheel](https://mmzeynalli.dev/posts/reinvent/ls/part3/)  

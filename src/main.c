@@ -399,10 +399,11 @@ file_t *get_dir_content(ls_config *config, char *dir, int num_of_files)
  * @param argv array of args passed to program.
 
  */
-void set_files(ls_config *config, file_t *files, char **argv)
+int set_files(ls_config *config, file_t *files, char **argv)
 {
 	int curr_entry = 0;
 	int dir_count = 0, file_count = 0;
+	int ret = 0;
 	struct stat temp;
 	for (int i = 1; argv[i]; i++) {
 		if (argv[i][0] != '-') {
@@ -423,6 +424,7 @@ void set_files(ls_config *config, file_t *files, char **argv)
 							argv[i],
 							strerror(errno));
 					--config->total_entries;
+					ret = 2;
 				}
 			}
 		}
@@ -433,24 +435,28 @@ void set_files(ls_config *config, file_t *files, char **argv)
 		config->print_dir_names = true;
 	if (config->recursive)
 		config->print_dir_names = true;
+	return ret;
 }
 
-file_t *create_initial_struct(file_t *files, ls_config *config, char **argv)
+int create_initial_struct(file_t **files, ls_config *config, char **argv)
 {
+	int ret = 0;
 	if (config->total_entries == 0) {
 		config->total_entries++;
-		files = ft_calloc(config->total_entries, sizeof(file_t));
-		ft_strlcpy(files[0].name, ".", 2);
-		if (stat(".", &files[0].stat) == 0) {
-			if (S_ISDIR(files[0].stat.st_mode))
-				files[0].is_dir = true;
+		*files = ft_calloc(config->total_entries, sizeof(file_t));
+		ft_strlcpy((*files)[0].name, ".", 2);
+		if (stat(".", &(*files)[0].stat) == 0) {
+			if (S_ISDIR((*files)[0].stat.st_mode))
+				(*files)[0].is_dir = true;
+		} else {
+			ret = 2;
 		}
 		config->print_dir_names = false;
 	} else {
-		files = ft_calloc(config->total_entries, sizeof(file_t));
-		set_files(config, files, argv);
+		*files = ft_calloc(config->total_entries, sizeof(file_t));
+		ret = set_files(config, *files, argv);
 	}
-	return files;
+	return ret;
 }
 
 int main(int argc, char *argv[])
@@ -471,7 +477,7 @@ int main(int argc, char *argv[])
 	};
 	init_config(&config);
 	ret = argp_parse(&argp, argc, argv, 0, 0, &config);
-	files = create_initial_struct(files, &config, argv);
+	ret = create_initial_struct(&files, &config, argv);
 	sort(files, config.total_entries);
 	print_ls(files, config.total_entries, &widths, true);
 	// looks like we first sort all regular files and print them and then do the same with folders
