@@ -1,7 +1,7 @@
 #include "libft/libft.h"
 #include <ft_ls.h>
 
-file_t *get_dir_content(ls_config *config, char *file, int num_of_files);
+file_t *get_dir_content(ls_config *config, char *dir, int num_of_files, window_t *widths);
 int get_dir_file_count(ls_config *config, char *name);
 
 struct argp_option options[] =
@@ -193,7 +193,6 @@ void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) 
 	column_info *column_configs;
 	int ncols;
 	int nrows;
-	int dir_count = 0;
 	int printed;
 
 	column_configs = ft_calloc(file_count, sizeof(column_info));	
@@ -202,8 +201,6 @@ void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) 
 	for (int i=0; i < file_count; i++) {
 		column_configs[i].valid = 1;
 		column_configs[i].max_len = ft_calloc(file_count, sizeof(int));
-		if (files[i].is_dir)
-			dir_count++;
 		if (column_configs[i].max_len == NULL) {
 			if (i == 0) {
 				free(column_configs);
@@ -221,7 +218,7 @@ void print_tabular(file_t *files, int file_count, window_t *widths, bool begin) 
 	if (begin)
 		nrows = (file_count + ncols - 1) / ncols;
 	else
-		nrows = (file_count - dir_count + ncols - 1) / ncols;
+		nrows = (file_count + ncols - 1) / ncols;
 
 	for (int i = 0; i < nrows; i++)
 	{
@@ -307,7 +304,7 @@ void loop(ls_config *config, int file_count, file_t *files, window_t *widths)
 			char *curr_dir = files[i].name;
 			int num_of_files = get_dir_file_count(config, files[i].name);
 			chdir(curr_dir);
-			file_t *temp = get_dir_content(config, files[i].name, num_of_files);
+			file_t *temp = get_dir_content(config, files[i].name, num_of_files, widths);
 			sort(temp, num_of_files);
 			if (i > 0)
 				printf("\n");
@@ -346,7 +343,7 @@ int get_dir_file_count(ls_config *config, char *name) {
 	return num_of_files;
 }
 
-void fill_files(ls_config *config, file_t *files, char *dir) {
+void fill_files(ls_config *config, file_t *files, char *dir, window_t *widths) {
 	(void)dir;
 	DIR *directory;
 	struct dirent *content;
@@ -355,9 +352,6 @@ void fill_files(ls_config *config, file_t *files, char *dir) {
 	directory = NULL;
 	if (!(directory = opendir(".")))
 		return;
-	/*if (chdir(dir)) {*/
-		/*printf("error changing current working dir\n");*/
-	/*}*/
 	while ((content = readdir(directory))) {
 		if (content->d_name[0] == '.'  && !config->all)
 			continue;
@@ -368,16 +362,14 @@ void fill_files(ls_config *config, file_t *files, char *dir) {
 		if (S_ISDIR(files[i].stat.st_mode)) {
 			files[i].is_dir = true;
 		}
+		update_widths(widths, &files[i]);
 		i++;
 	}
-	/*if (!(ft_strlen(dir) == 1 && !ft_memcmp(".", dir, ft_strlen(dir)))) {*/
-		/*chdir("..");*/
-	/*}*/
 	closedir(directory);
 	return;
 }
 
-file_t *get_dir_content(ls_config *config, char *dir, int num_of_files)
+file_t *get_dir_content(ls_config *config, char *dir, int num_of_files, window_t *widths)
 {
 	file_t *files;
 
@@ -387,7 +379,7 @@ file_t *get_dir_content(ls_config *config, char *dir, int num_of_files)
 	if (!files)
 		return NULL;
 	ft_bzero(files, (num_of_files + 1) * sizeof(file_t));
-	fill_files(config, files, dir);
+	fill_files(config, files, dir, widths);
 	return files;
 }
 
